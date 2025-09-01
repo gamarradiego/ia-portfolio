@@ -11,4 +11,4 @@ Breve presentación personal, intereses y objetivos para este curso.
 - Lenguajes / herramientas relevantes
 
 ## Contacto
-- Email institucional
+- Email institucional.
