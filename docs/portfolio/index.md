@@ -5,9 +5,13 @@ date: 2025-01-01
 
 # Portafolio
 
-Bienvenido a las entradas del portafolio. Usá la plantilla para crear nuevas páginas numeradas
-(`01-...`, `02-...`).
+Bienvenido a las entradas del portafolio.  
+Aquí encontrarás el desarrollo de cada Unidad Temática (UT).
 
-- Plantilla: [plantilla.md](plantilla.md)
-- Primera entrada: [01-primera-entrada.md](01-primera-entrada.md)
+## Unidades temáticas
+
+- [Unidad Temática 1](ut1/index.md)
+- [Unidad Temática 2](ut2/index.md)
+- [Unidad Temática 3](ut3/index.md)
+
 
