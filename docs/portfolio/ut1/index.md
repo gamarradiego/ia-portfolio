@@ -1,6 +1,6 @@
 ---
 title: "UT1 — Inicio"
-date: 2025-01-01
+date: 2025-08-01
 ---
 
 # Unidad Temática 1
