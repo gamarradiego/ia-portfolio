@@ -1,3 +1,8 @@
+---
+title: "Práctica 10: Data Augmentation Avanzado & Explicabilidad"
+date: 2025-10-14
+---
+
 # Práctica 10 – Data Augmentation Avanzado & Explicabilidad
 
 ---
