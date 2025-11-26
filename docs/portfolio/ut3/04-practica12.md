@@ -3,7 +3,7 @@ title: "Práctica 12: SAM Segmentation - Pretrained vs Fine-tuned"
 date: 2025-10-28
 ---
 
-# Fine-tuning de Segment Anything (SAM) para segmentación de áreas inundadas
+# Práctica 12: SAM Segmentation - Pretrained vs Fine-tuned
 
 ## Contexto
 
@@ -127,16 +127,38 @@ Se calcularon métricas (`IoU`, `Dice`, `Precision`, `Recall`) con funciones per
 
 
 ### 4. Creación del Dataset y DataLoaders
-Se definió la clase `FloodSegmentationDataset`, que redimensiona las imágenes a **1024x1024**. Se aplica *data augmentation* con **Albumentations** (flips horizontales y verticales, rotaciones suaves, cambios de brillo/contraste). 
-Se dividió el dataset en **80% train / 20% validación** y se definieron `DataLoaders` con una `collate_fn` personalizada.
+Para entrenar de forma eficas al modelo, fue necesario crear una clase personalizada llamada `FloodSegmentationDataset(Dataset)`. Esta clase encapsula todo el preprocesamiento requerido por SAM y a su vez organiza los datos de forma que puedan ser utilizados por un DataLoader de PyTorch.
+
+#### 4.1 Redimensionamiento
+SAM usa internamente un tamaño de procesamiento estándar de 1024x1024 píxeles. Debido a esto, todas las imagenes y sus máscaras asociadas se deben redimensionar a este tamaño fijo antes de hacer cualquier transformación. De esta forma se asegura que todas las muestras sean compatibles con el image encoder del modelo, se puedan crear batches y el proceso tenga coordenadas coherentes.
+
+#### 4.2 Data augmentation con Albumentations
+Dado que el dataset no es muy grande, se incorporaron algunas técnicas de data augmentation para mejorar la capacidad de generalización del modelo. Todo esto se aplica luego del redimensionamiento, así la imagen y la máscara mantienen las mismas dimensiones.
+Gracias a estas técnicas, el modelo logra adaptarse mejor a imágenes con iluminación, ángulos o condiciones atmosféricas variables.
+
+#### 4.3 Generación automática de prompts
+SAM necesita un prompt como entrada. Para cada ejemplo se automatizó la creación de prompts. 
+- `prompt_type='point'`: elige un punto aleatorio dentro de la región de agua identificada en la máscara.
+- `prompt_type='box'`: calcula una bounding box a partir de la máscara que encierre la región segmentada.
+
+El uso de este mecanismo permite entrenar el modelo usando point prompts y box prompts.
+
+#### 4.4 Definición de collate_fn personalizado
+SAM maneja prompts como estructuras heterogéneas lo que impide usar el collatefn estándar de PyTorch. Para resolver esto se definió uno personalizada que agrupara imágenes y máscaras, conservara los prompts como una lista y mantuviera el tamaño original de cada imagen para reescalar las predicciones durante la evaluación.
+Usando este collate_fn es posible trabajar con batches sin perder información variable que cada prompt pueda contener.
 
 ### 5. Funciones de pérdida y configuración de fine-tuning
 Se usó una **pérdida combinada (BCE + Dice)**.  
-Se congelaron el `image_encoder` y el `prompt_encoder`, dejando solo el **mask decoder** entrenable para reducir riesgo de sobreajuste.  
-Optimización: **Adam** con `lr=1e-4` y *scheduler* con decaimiento cada 5 epochs.
+Para el fine-tuning del modelo:
+
+- Se cargó nuevamente SAM en `sam_finetune`.
+- Se **congelaron** los parámetros de `image_encoder` y `prompt_encoder`
+- Se dejó **entrenable solo el `mask_decoder`**, para adaptar la etapa de decodificación de máscaras al dominio específico de inundaciones.
+- Se usó el optimizador **Adam** con `lr = 1e-4` y un scheduler `StepLR` que reduce la tasa de aprendizaje cada 5 epochs.
 
 ### 6. Entrenamiento y validación
 Se entrenó durante **15 epochs**. En cada iteración:
+
 - Se calculó el embedding de la imagen (sin gradientes).
 - Se procesó el prompt.
 - Se decodificó la máscara (256x256).
@@ -149,7 +171,21 @@ Se guardó el mejor modelo (`sam_finetuned_best.pth`) basado en la mayor métric
 
 ### 7. Evaluación post fine-tuning
 El modelo fine-tuneado se evaluó sobre el conjunto de validación, mostrando mejoras consistentes en todas las métricas (IoU, Dice, precision, recall).  
-Se visualizaron histogramas, bar charts comparativos y ejemplos cualitativos donde se apreciaban bordes más precisos y menos falsos positivos.
+
+Se compararon las métricas promedio del modelo:
+
+- **Pretrained SAM** vs **SAM fine-tuneado**
+
+Métricas consideradas:
+
+- IoU medio + desviación estándar
+- Dice medio
+- Precisión y recall medios
+
+Además de los valores numéricos, se generaron:
+
+- Histogramas que comparan las distribuciones de IoU, Dice, Precision y Recall antes y después del fine-tuning.
+- Un **bar chart** resumiendo el valor medio de cada métrica para ambos modelos.
 
 **Comparación — Pretrained vs Fine-tuned SAM**
 
@@ -198,7 +234,7 @@ Las métricas IoU y Dice aumentaron visiblemente, y las máscaras mostraron mayo
 
 
 ### ¿Qué desafíos específicos presenta la segmentación de agua en inundaciones?
-- **Reflehjos:** reflejos del cielo y edificios engañan al modelo.
+- **Reflejos:** reflejos del cielo y edificios engañan al modelo.
 - **Sombras:** zonas oscuras no siempre son agua.
 - **Objetos flotantes:** cortan la continuidad del área inundada.
 - **Colores variables:** desde azul a marrón oscuro.
@@ -209,3 +245,14 @@ El modelo debe aprender a distinguir estos patrones para lograr segmentaciones c
 
 ## Referencias
 
+- [Kirillov, A., Mintun, E., et al. (2023). *Segment Anything*. Meta AI Research.](https://arxiv.org/abs/2304.02643)
+
+- [Repositorio oficial de Segment Anything (Meta AI) – GitHub](https://github.com/facebookresearch/segment-anything)
+
+- [Dataset: *Flood Area Segmentation* – Kaggle (Faizal Karim)](https://www.kaggle.com/datasets/faizalkarim/flood-area-segmentation)
+
+- [PyTorch Documentation – Dataset, DataLoader y Autograd](https://pytorch.org/docs/stable/data.html)
+
+- [Albumentations: Efficient Image Augmentation Library](https://albumentations.ai/docs/)
+
+- [OpenCV-Python Documentation – Image Processing Reference](https://docs.opencv.org/4.x/)
