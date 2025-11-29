@@ -1,6 +1,6 @@
 ---
 title: "Plantilla de entrada de portafolio"
-date: 2025-01-01
+date: 2025-11-25
 ---
 
 # Plantilla de entrada de portafolio
